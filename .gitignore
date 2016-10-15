@@ -1,0 +1,6 @@
+.idea
+.eggs
+.eggs/*
+*.pyc
+/build
+/nuage_shim.egg-info

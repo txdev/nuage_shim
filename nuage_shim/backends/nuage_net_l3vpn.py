@@ -1,0 +1,236 @@
+# Copyright (c) 2016 Nokia, Inc.
+# All Rights Reserved
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+# Copyright (c) 2016 Nokia, Inc.
+# All Rights Reserved
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+import time
+import string
+
+from nuage_shim.base import HandlerBase
+from nuage_shim.utils import compute_netmask
+from nuage_shim.utils import compute_network_addr
+from nuage_shim.vm_split_activation import NUSplitActivation
+
+
+from oslo_log import log as logging
+
+LOG = logging.getLogger(__name__)
+
+
+class NuageNetL3VPN(HandlerBase):
+
+    def __init__(self, _api_url, _username, _password, _enterprise, _enterprise_name):
+        self.api_url = _api_url
+        self.username = _username
+        self.password = _password
+        self.enterprise = _enterprise
+        self.enterprise_name = _enterprise_name
+
+    def bind_port(self, uuid, model, changes):
+        """ Called to bind port to VM.
+
+        :param uuid: UUID of Port
+        :param model: Model object
+        :returns: dict of vif parameters (vif_type, vif_details)
+        """
+        port = model.ports.get(uuid, None)
+        if not port:
+            LOG.error("Cannot find port")
+            return dict()
+        service_binding = model.vpn_ports.get(uuid, None)
+        if not service_binding:
+            LOG.error("Cannot bind port, not bound to a service")
+            return dict()
+        vpn_instance = model.vpn_instances.get(service_binding["vpn_instance"], None)
+        if not vpn_instance:
+            LOG.error("VPN instance not available!")
+            return dict()
+        afconfig_list = list()
+        afconfig_string = vpn_instance.get("ipv4_family")
+        if afconfig_string:
+            tmp_list = afconfig_string.split(',')
+            for afconfig_name in tmp_list:
+                afconfig_list.append(afconfig_name.strip())
+        LOG.info("bind_port: %s" % uuid)
+        LOG.info("port: %s" %  port)
+        LOG.info("service: %s" %  vpn_instance)
+        for afconfig_name in afconfig_list:
+            afconfig = model.vpn_afconfigs.get(afconfig_name, None)
+            if (afconfig):
+                LOG.info("  afconfig(%s): %s" % (afconfig_name, afconfig))
+        LOG.info(changes)
+
+        subnet_name = 'Subnet' + str(time.clock())
+        subnet_name = string.replace(subnet_name, '.', '-')
+
+        prefix = port.get('subnet_prefix', '32')
+        print('prefix = %s' % prefix)
+        if len(afconfig_list) > 0:
+            rt = afconfig_list[0].get('vrf_rt_value')
+        else:
+            rt = vpn_instance.get("ipv4_family")
+        config = {
+            'api_url': self.api_url,
+            'domain_name': vpn_instance.get('vpn_instance_name'),
+            'enterprise': self.enterprise,
+            'enterprise_name': self.enterprise_name,
+            'netmask': compute_netmask(prefix),
+            'network_address': compute_network_addr(port.get('ipaddress', ''), prefix),
+            'route_distinguisher': vpn_instance.get("route_distinguisher"),
+            'route_target': rt,
+            'subnet_name': subnet_name,
+            'username': self.username,
+            'password': self.password,
+            'vm_ip': port.get('ipaddress', ''),
+            'vm_mac': port.get('mac_address', ''),
+            'vm_name': port.get('device_id', ''),  ## uuid of the VM
+            'vm_uuid': port.get('device_id', ''),
+            'vport_name': port.get('id', ''),
+            'zone_name': 'Zone0',
+            'tunnel_type': 'GRE',
+            'domain_template_name': 'GluonDomainTemplate'
+        }
+
+        sa = NUSplitActivation(config)
+        if sa.activate():
+            retval = {'vif_type': 'ovs', 'vif_details': {'port_filter': False, 'bridge_name': 'alubr0'}}
+        else:
+            retval = dict()
+        return retval
+
+    def unbind_port(self, uuid, model, changes):
+        """ Called to unbind port from VM.
+
+        :param uuid: UUID of Port
+        :param model: Model object
+        :returns: None
+        """
+        port = model.ports.get(uuid, None)
+        if not port:
+            LOG.error("Cannot find port")
+            return dict()
+        service_binding = model.vpn_ports.get(uuid, None)
+        if not service_binding:
+            LOG.error("Cannot locate bound service")
+            vpn_instance = model.vpn_instances.get(service_binding["vpn_instance"], None)
+            if not vpn_instance:
+                LOG.error("VPN instance not available!")
+                return dict()
+        LOG.info("unbind_port: %s" % uuid)
+        LOG.info("port: %s" %  port)
+        LOG.info("service: %s" %  vpn_instance)
+        LOG.info(changes)
+        config = {
+            'api_url': self.api_url,
+            'domain_name': vpn_instance.get('vpn_instance_name'),
+            'enterprise': self.enterprise,
+            'enterprise_name': self.enterprise_name,
+            'username': self.username,
+            'password': self.password,
+            'vm_uuid': port.get('device_id', ''),
+            'vport_name': port.get('id', '')
+        }
+        sa = NUSplitActivation(config)
+        return sa.deactivate()
+
+    def modify_port(self, uuid, model, changes):
+        """ Called when attributes change on a bound port.
+
+        :param uuid: UUID of Port
+        :param model: Model object
+        :param changes: dictionary of changed attributes
+        :returns: None
+        """
+        LOG.info("modify_port: %s" % uuid)
+        LOG.info(changes)
+        pass
+
+    def delete_port(self, uuid, model):
+        """ Called when a bound port is deleted
+
+        :param uuid: UUID of Port
+        :param model: Model object
+        :param changes: dictionary of changed attributes
+        :returns: None
+        """
+        pass
+
+    def modify_service(self, uuid, model, changes):
+        """ Called when attributes change on a service associated with a bound port.
+
+        :param uuid: UUID of Service
+        :param model: Model Object
+        :param changes: dictionary of changed attributes
+        :returns: None
+        """
+        LOG.info("modify_service: %s" % uuid)
+        LOG.info(changes)
+        pass
+
+    def delete_service(self, uuid, model, changes):
+        """ Called when a service associated with a bound port is deleted
+
+        :param uuid: UUID of Service
+        :param model: Model Object
+        :param changes: dictionary of changed attributes
+        :returns: None
+        """
+        pass
+
+    def modify_service_binding(self, uuid, model, prev_binding):
+        """ Called when a service is associated with a bound port.
+
+        :param uuid: UUID of Port
+        :param model: Model Object
+        :param prev_binding: dictionary of previous binding
+        :returns: None
+        """
+        LOG.info("modify_service_binding: %s" % uuid)
+        LOG.info(prev_binding)
+        pass
+
+    def delete_service_binding(self, model, prev_binding):
+        """ Called when a service is disassociated with a bound port.
+
+        :param model: Model Object
+        :param prev_binding: dictionary of previous binding
+        :returns: None
+        """
+        pass
+
+    def modify_subport_parent(self, uuid, model, prev_parent, prev_parent_type):
+        """ Called when a subport's parent relationship changes.
+
+        :param uuid: UUID of Subport
+        :param model: Model object
+        :param prev_parent: UUID of previous parent
+        :param prev_parent_type: name of previous parent (Port or Subport)
+        :returns: None
+        """
+        pass
+
