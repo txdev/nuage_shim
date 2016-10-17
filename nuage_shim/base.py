@@ -17,7 +17,7 @@
 import abc
 import six
 
-from nuage_shim.model import Model
+from gluon.shim_example.model import Model
 
 
 class ApiModelBase(object):
@@ -40,7 +40,7 @@ class ApiModelBase(object):
         event methods on the registered backend object.  The
         event methods are defined in the ControllerBase class.
 
-        :param object: name of the etcd object that changes (e.g. ProtonBasePort)
+        :param object: name of the etcd object that changed
         :param key: key of the object
         :param attributes: dictionary of attributes for the object
         :param shim_data: Shim public data (name, client, host_list, etc)
@@ -56,13 +56,13 @@ class ApiModelBase(object):
         event methods on the registered backend object.  The
         event methods are defined in the ControllerBase class.
 
-        :param object: name of the etcd object that changes (e.g. ProtonBasePort)
+        :param object: name of the etcd object that changed
         :param key: key of the object
         :param host_list: list of hosts managed by this shim layer server
         :param shim_data: Shim public data (name, client, host_list, etc)
         :returns: None
         """
-    pass
+        pass
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -75,6 +75,7 @@ class HandlerBase(object):
         :param uuid: UUID of Port
         :param model: Model object
         :returns: dict of vif parameters (vif_type, vif_details)
+                  {} if bind is rejected
         """
         pass
 
@@ -114,7 +115,8 @@ class HandlerBase(object):
 
     @abc.abstractmethod
     def modify_service(self, uuid, model, changes):
-        """ Called when attributes change on a service associated with a bound port.
+        """ Called when attributes change on a service associated
+            with a bound port.
 
         :param uuid: UUID of Service
         :param model: Model Object
@@ -156,7 +158,8 @@ class HandlerBase(object):
         pass
 
     @abc.abstractmethod
-    def modify_subport_parent(self, uuid, model, prev_parent, prev_parent_type):
+    def modify_subport_parent(self, uuid, model, prev_parent,
+                              prev_parent_type):
         """ Called when a subport's parent relationship changes.
 
         :param uuid: UUID of Subport

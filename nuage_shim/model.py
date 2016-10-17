@@ -13,9 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
-import six
 import collections
+
 
 class ObjBase(collections.MutableMapping):
     '''
@@ -30,23 +29,30 @@ class ObjBase(collections.MutableMapping):
         if (attributes is not None):
             self.__dict__.update(attributes)
     # The next five methods are requirements of the ABC.
+
     def __setitem__(self, key, value):
         self.__dict__[key] = value
+
     def __getitem__(self, key):
         return self.__dict__[key]
+
     def __delitem__(self, key):
         del self.__dict__[key]
+
     def __iter__(self):
         return iter(self.__dict__)
+
     def __len__(self):
         return len(self.__dict__)
+
     def __str__(self):
         '''returns simple dict representation of the mapping'''
         return str(self.__dict__)
+
     def __repr__(self):
         '''echoes class, id, & reproducible representation in the REPL'''
-        return '{}, {}'.format(super(ObjBase, self).__repr__(),
-                                  self.__dict__)
+        return '{}, {}'.format(super(ObjBase, self).__repr__(), self.__dict__)
+
     def update_attrs(self, new_attributes):
         changes = dict()
         for key in new_attributes:
@@ -58,6 +64,7 @@ class ObjBase(collections.MutableMapping):
                 self.__dict__[key] = new_attributes[key]
                 changes[key] = new_attributes[key]
         return changes
+
 
 class Port(ObjBase):
 
@@ -73,7 +80,8 @@ class DataObj(ObjBase):
         super(self.__class__, self).__init__(attributes)
         self.__dict__["__id"] = id
 
+
 class Model(object):
 
     def __init__(self):
-        self.ports= dict()      # Port objects
+        self.ports = dict()      # Port objects

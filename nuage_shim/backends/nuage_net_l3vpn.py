@@ -71,36 +71,36 @@ class NuageNetL3VPN(HandlerBase):
             LOG.error("VPN instance not available!")
             return dict()
         afconfig_list = list()
+        afconfig_name_list = list()
         afconfig_string = vpn_instance.get("ipv4_family")
         if afconfig_string:
             tmp_list = afconfig_string.split(',')
             for afconfig_name in tmp_list:
-                afconfig_list.append(afconfig_name.strip())
+                afconfig_name_list.append(afconfig_name.strip())
         LOG.info("bind_port: %s" % uuid)
         LOG.info("port: %s" %  port)
         LOG.info("service: %s" %  vpn_instance)
-        for afconfig_name in afconfig_list:
+        for afconfig_name in afconfig_name_list:
             afconfig = model.vpn_afconfigs.get(afconfig_name, None)
             if (afconfig):
+ 		afconfig_list.append(afconfig)
                 LOG.info("  afconfig(%s): %s" % (afconfig_name, afconfig))
         LOG.info(changes)
-
-        subnet_name = 'Subnet' + str(time.clock())
-        subnet_name = string.replace(subnet_name, '.', '-')
-
         prefix = port.get('subnet_prefix', '32')
         print('prefix = %s' % prefix)
         if len(afconfig_list) > 0:
             rt = afconfig_list[0].get('vrf_rt_value')
         else:
             rt = vpn_instance.get("ipv4_family")
+        net_address = compute_network_addr(port.get('ipaddress', ''), prefix)
+        subnet_name = 'Subnet' + net_address.replace('.','_')
         config = {
             'api_url': self.api_url,
             'domain_name': vpn_instance.get('vpn_instance_name'),
             'enterprise': self.enterprise,
             'enterprise_name': self.enterprise_name,
             'netmask': compute_netmask(prefix),
-            'network_address': compute_network_addr(port.get('ipaddress', ''), prefix),
+            'network_address': net_address,
             'route_distinguisher': vpn_instance.get("route_distinguisher"),
             'route_target': rt,
             'subnet_name': subnet_name,
@@ -115,7 +115,6 @@ class NuageNetL3VPN(HandlerBase):
             'tunnel_type': 'GRE',
             'domain_template_name': 'GluonDomainTemplate'
         }
-
         sa = NUSplitActivation(config)
         if sa.activate():
             retval = {'vif_type': 'ovs', 'vif_details': {'port_filter': False, 'bridge_name': 'alubr0'}}
@@ -133,14 +132,15 @@ class NuageNetL3VPN(HandlerBase):
         port = model.ports.get(uuid, None)
         if not port:
             LOG.error("Cannot find port")
-            return dict()
+            return False
         service_binding = model.vpn_ports.get(uuid, None)
         if not service_binding:
             LOG.error("Cannot locate bound service")
-            vpn_instance = model.vpn_instances.get(service_binding["vpn_instance"], None)
-            if not vpn_instance:
-                LOG.error("VPN instance not available!")
-                return dict()
+            return False
+        vpn_instance = model.vpn_instances.get(service_binding["vpn_instance"], None)
+        if not vpn_instance:
+            LOG.error("VPN instance not available!")
+            return False
         LOG.info("unbind_port: %s" % uuid)
         LOG.info("port: %s" %  port)
         LOG.info("service: %s" %  vpn_instance)

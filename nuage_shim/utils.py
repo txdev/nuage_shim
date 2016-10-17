@@ -13,23 +13,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import netaddr
+
+
 def compute_network_addr(ip, prefix):
     """
     return network address
     """
-
-    addr = ip.split('.')
-    prefix = int(prefix)
-
-    mask = [0, 0, 0, 0]
-    for i in range(prefix):
-        mask[i / 8] += (1 << (7 - i % 8))
-
-    net = []
-    for i in range(4):
-        net.append(int(addr[i]) & mask[i])
-
-    return '.'.join(str(e) for e in net)
+    addr = netaddr.IPNetwork(ip)
+    addr.prefixlen = int(prefix)
+    return addr.network
 
 
 def compute_netmask(prefix):
@@ -38,12 +31,7 @@ def compute_netmask(prefix):
     :param prefix:
     :return:
     """
-    prefix = int(prefix)
+    addr = netaddr.IPNetwork("0.0.0.0")
+    addr.prefixlen = int(prefix)
+    return addr.netmask
 
-    mask = [0, 0, 0, 0]
-    for i in range(prefix):
-        mask[i / 8] += (1 << (7 - i % 8))
-
-    ret = '.'.join(str(e) for e in mask)
-    print('Calculated mask = %s' % ret)
-    return  ret
