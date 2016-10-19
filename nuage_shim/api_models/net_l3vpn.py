@@ -19,8 +19,8 @@ import os
 import etcd
 from oslo_log import log as logging
 
-from gluon.shim_example import model as Model
-from gluon.shim_example.base import ApiModelBase
+from nuage_shim import model as Model
+from nuage_shim.base import ApiModelBase
 
 LOG = logging.getLogger(__name__)
 

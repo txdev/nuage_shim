@@ -70,6 +70,12 @@ class NuageNetL3VPN(HandlerBase):
         if not vpn_instance:
             LOG.error("VPN instance not available!")
             return dict()
+        rd_list = list()
+        rd_string = vpn_instance.get("route_distinguishers")
+        if rd_string:
+            tmp_list = rd_string.split(',')
+            for rd_name in tmp_list:
+                rd_list.append(rd_name.strip())
         afconfig_list = list()
         afconfig_name_list = list()
         afconfig_string = vpn_instance.get("ipv4_family")
@@ -83,7 +89,7 @@ class NuageNetL3VPN(HandlerBase):
         for afconfig_name in afconfig_name_list:
             afconfig = model.vpn_afconfigs.get(afconfig_name, None)
             if (afconfig):
- 		afconfig_list.append(afconfig)
+                afconfig_list.append(afconfig)
                 LOG.info("  afconfig(%s): %s" % (afconfig_name, afconfig))
         LOG.info(changes)
         prefix = port.get('subnet_prefix', '32')
@@ -92,8 +98,12 @@ class NuageNetL3VPN(HandlerBase):
             rt = afconfig_list[0].get('vrf_rt_value')
         else:
             rt = vpn_instance.get("ipv4_family")
-        net_address = compute_network_addr(port.get('ipaddress', ''), prefix)
+        net_address = str(compute_network_addr(port.get('ipaddress', ''), prefix))
         subnet_name = 'Subnet' + net_address.replace('.','_')
+        if len(rd_list) > 0:
+            rd = rd_list[0]
+        else:
+            rd = rt
         config = {
             'api_url': self.api_url,
             'domain_name': vpn_instance.get('vpn_instance_name'),
@@ -101,7 +111,7 @@ class NuageNetL3VPN(HandlerBase):
             'enterprise_name': self.enterprise_name,
             'netmask': compute_netmask(prefix),
             'network_address': net_address,
-            'route_distinguisher': vpn_instance.get("route_distinguisher"),
+            'route_distinguisher': rd,
             'route_target': rt,
             'subnet_name': subnet_name,
             'username': self.username,
