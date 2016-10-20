@@ -247,7 +247,7 @@ class NuageNetL3VPN(HandlerBase):
                 LOG.error("unbind failed")
             prefix = port.get('subnet_prefix', '32')
             print('prefix = %s' % prefix)
-            rt = "1:1"
+            rt = "65535:65535"
             rd = rt
             net_address = str(compute_network_addr(port.get('ipaddress', ''),
                                                    prefix))

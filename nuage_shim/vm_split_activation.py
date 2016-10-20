@@ -39,6 +39,7 @@ Create config file with right parameters
 run 'python vm_split_activation.py -c <config-file> -v
 
 """
+import time
 
 from vspk import v3_2 as vsdk
 
@@ -105,12 +106,10 @@ class NUSplitActivation:
 
             if domain is None:
                 LOG.info("Domain %s not found, creating domain" % self.domain_name)
-
                 domain_template = enterprise.domain_templates.get_first(filter='name == "%s"' % self.domain_template_name)
                 domain = vsdk.NUDomain(name=self.domain_name,
                                        template_id=domain_template.id)
                 enterprise.create_child(domain)
-
                 # update domain with the right values
                 domain.tunnel_type = self.tunnel_type
                 domain.route_distinguisher = self.route_distinguisher
@@ -119,15 +118,16 @@ class NUSplitActivation:
                 domain.back_haul_route_distinguisher = '20000:20000'
                 domain.back_haul_vnid = '25000'
                 domain.save()
+                time.sleep(1)
 
             # get zone
             zone = domain.zones.get_first(filter='name == "%s"' % self.zone_name)
 
             if zone is None:
                 LOG.info("Zone %s not found, creating zone" % self.zone_name)
-
                 zone = vsdk.NUZone(name=self.zone_name)
                 domain.create_child(zone)
+                time.sleep(1)
 
             zone.subnets.fetch()
 
@@ -138,7 +138,6 @@ class NUSplitActivation:
 
             if subnet is None:
                 LOG.info("Subnet %s not found, creating subnet" % self.subnet_name)
-
                 subnet = vsdk.NUSubnet(name=self.subnet_name, address=self.network_address,
                                        netmask=self.netmask)
                 zone.create_child(subnet)
@@ -149,17 +148,14 @@ class NUSplitActivation:
             if vport is None:
                 # create vport
                 LOG.info("Vport %s is not found, creating Vport" % self.vport_name)
-
                 vport = vsdk.NUVPort(name=self.vport_name, address_spoofing='INHERITED', type='VM',
                                      description='Automatically created, do not edit.')
                 subnet.create_child(vport)
 
             # get vm
             vm = self.session.user.fetcher_for_rest_name('vm').get('uuid=="%s"' % self.vm_uuid)
-
             if not vm:
                 LOG.info("VM %s is not found, creating VM" % self.vm_name)
-
                 vm = vsdk.NUVM(name=self.vm_name, uuid=self.vm_uuid, interfaces=[{
                     'name': self.vm_name,
                     'VPortID': vport.id,
