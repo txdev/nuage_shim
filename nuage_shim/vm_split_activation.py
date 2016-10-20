@@ -40,9 +40,6 @@ run 'python vm_split_activation.py -c <config-file> -v
 
 """
 
-import argparse
-import ConfigParser
-
 from vspk import v3_2 as vsdk
 
 from oslo_log import log as logging
@@ -53,8 +50,8 @@ LOG = logging.getLogger(__name__)
 class NUSplitActivation:
     def __init__(self, config):
         for k, v in config.items():
+            LOG.info("%s = %s" % (k,v))
             setattr(self, k, v)
-        LOG("Config = %s" % config)
         try:
             self.session = vsdk.NUVSDSession(username=self.username, password=self.password,
                                              enterprise=self.enterprise, api_url=self.api_url)

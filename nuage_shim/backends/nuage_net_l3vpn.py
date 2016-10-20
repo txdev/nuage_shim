@@ -35,6 +35,7 @@ from nuage_shim.base import HandlerBase
 from nuage_shim.utils import compute_netmask
 from nuage_shim.utils import compute_network_addr
 from nuage_shim.vm_split_activation import NUSplitActivation
+from nuage_shim import model as Model
 
 
 from oslo_log import log as logging
@@ -152,7 +153,7 @@ class NuageNetL3VPN(HandlerBase):
             'enterprise_name': self.enterprise_name,
             'username': self.username,
             'password': self.password,
-            'vm_uuid': port.get('device_id', ''),
+            'vm_uuid': changes.prev.get('device_id', ''),
             'vport_name': port.get('id', '')
         }
         sa = NUSplitActivation(config)
@@ -210,12 +211,19 @@ class NuageNetL3VPN(HandlerBase):
         :param prev_binding: dictionary of previous binding
         :returns: None
         """
+        port = model.ports.get(uuid, None)
+        if not port:
+            LOG.error("Cannot find port")
+            return False
+        changes = Model.ChangeData()
+        changes.prev["device_id"] = port.device_id
         LOG.info("modify_service_binding: %s" % uuid)
         LOG.info(prev_binding)
-        retval = self.unbind_port(uuid, model, {})
+        retval = self.unbind_port(uuid, model, changes)
         if (not retval):
             LOG.error("unbind failed")
-        retval = self.bind_port(uuid, model, {})
+        changes = Model.ChangeData()
+        retval = self.bind_port(uuid, model, changes)
         if (not retval):
             LOG.error("bind to new service failed")
 
@@ -235,7 +243,9 @@ class NuageNetL3VPN(HandlerBase):
                 LOG.error("Cannot find port")
                 return False
             LOG.info("port: %s" % port)
-            if not self.unbind_port(uuid, model, {}):
+            changes = Model.ChangeData()
+            changes.prev["device_id"] = port.device_id
+            if not self.unbind_port(uuid, model, changes):
                 LOG.error("unbind failed")
                 return False
             prefix = port.get('subnet_prefix', '32')

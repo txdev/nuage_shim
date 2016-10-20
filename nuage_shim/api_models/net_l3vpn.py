@@ -99,10 +99,12 @@ class ApiNetL3VPN(ApiModelBase):
 
     def handle_port_change(self, key, attributes, shim_data):
         if key in self.model.ports:
-            changes = self.model.ports[key].update_attrs(attributes)
-            if self.bind_attributes_changed(changes):
+            prev_port = self.model.ports[key]
+            self.model.ports[key].update_attrs(attributes)
+            changes = Model.ChangeData()
+            if self.bind_attributes_changed(changes.new):
                 if self.model.ports[key]["__state"] == "Bound":
-                    if self.is_bind_request(changes):  # already bound?
+                    if self.is_bind_request(changes.new):  # already bound?
                         LOG.error("Bind request on bound port?")
                     else:  # Unbind
                         self.backend.unbind_port(key, self.model, changes)
@@ -112,8 +114,8 @@ class ApiNetL3VPN(ApiModelBase):
                         self.update_etcd_unbound(shim_data, key)
                         self.model.ports[key]["__state"] = "Unbound"
                 elif self.model.ports[key]["__state"] == "Unbound":
-                    if self.is_bind_request(changes):
-                        if changes["host_id"] in \
+                    if self.is_bind_request(changes.new):
+                        if changes.new["host_id"] in \
                                 shim_data.host_list:  # On one of my hosts
                             vif_dict = self.backend.bind_port(key,
                                                               self.model,
@@ -131,7 +133,7 @@ class ApiNetL3VPN(ApiModelBase):
                     else:
                         pass
                 elif self.model.ports[key]["__state"] == "InUse":
-                    if self.is_bind_request(changes):  # already bound?
+                    if self.is_bind_request(changes.new):  # already bound?
                         LOG.error("Bind request on InUse port: %s" % key)
                     else:
                         self.model.ports[key]["__state"] = "Unbound"
@@ -155,8 +157,7 @@ class ApiNetL3VPN(ApiModelBase):
             for vpn_port in self.model.vpn_ports.itervalues():
                 if vpn_port["vpn_instance"] == key:
                     port = self.model.ports.get(vpn_port["id"])
-            changes = \
-                self.model.vpn_instances[key].update_attrs(attributes)
+            changes = self.model.vpn_instances[key].update_attrs(attributes)
             if port and port["__state"] == "Bound":
                 self.backend.modify_service(key, self.model, changes)
         else:
@@ -183,12 +184,12 @@ class ApiNetL3VPN(ApiModelBase):
         if key in self.model.vpn_afconfigs:
             self.model.vpn_afconfigs[key].update_attrs(attributes)
             for vpn_instance in self.model.vpn_instances.itervalues():
-                changes = dict()
+                changes = Model.ChangeData()
                 if vpn_instance["ipv4_family"].find(key) != -1:
-                    changes["ipv4_family"] = vpn_instance["ipv4_family"]
+                    changes.new["ipv4_family"] = vpn_instance["ipv4_family"]
                 if vpn_instance["ipv6_family"].find(key) != -1:
-                    changes["ipv6_family"] = vpn_instance["ipv6_family"]
-                if len(changes) > 0:
+                    changes.new["ipv6_family"] = vpn_instance["ipv6_family"]
+                if len(changes.new) > 0:
                     port = None
                     for vpn_port in self.model.vpn_ports.itervalues():
                         if vpn_port["vpn_instance"] == vpn_instance["id"]:
@@ -241,16 +242,16 @@ class ApiNetL3VPN(ApiModelBase):
         if key in self.model.vpn_afconfigs:
             del self.model.vpn_afconfigs[key]
             for vpn_instance in self.model.vpn_instances.itervalues():
-                changes = dict()
+                changes = Model.ChangeData()
                 if vpn_instance["ipv4_family"].find(key) != -1:
                     l = vpn_instance["ipv4_family"].split(',')
                     l.remove(key)
-                    changes["ipv4_family"] = ','.join(l)
+                    changes.new["ipv4_family"] = ','.join(l)
                 if vpn_instance["ipv6_family"].find(key) != -1:
                     l = vpn_instance["ipv6_family"].split(',')
                     l.remove(key)
-                    changes["ipv6_family"] = ','.join(l)
-                if len(changes) > 0:
+                    changes.new["ipv6_family"] = ','.join(l)
+                if len(changes.new) > 0:
                     port = None
                     for vpn_port in self.model.vpn_ports.itervalues():
                         if vpn_port["vpn_instance"] == vpn_instance["id"]:
