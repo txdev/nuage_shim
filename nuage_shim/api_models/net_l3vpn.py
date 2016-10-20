@@ -235,8 +235,7 @@ class ApiNetL3VPN(ApiModelBase):
             deleted_obj = self.model.vpn_ports[key]
             del self.model.vpn_ports[key]
             if port and port["__state"] == "Bound":
-                self.backend.delete_service_binding(key, self.model,
-                                                    deleted_obj)
+                self.backend.delete_service_binding(self.model, deleted_obj)
 
     def handle_vpnafconfig_delete(self, key, shim_data):
         if key in self.model.vpn_afconfigs:
@@ -265,7 +264,7 @@ class ApiNetL3VPN(ApiModelBase):
             self.handle_port_delete(key, shim_data)
         elif object_type == "VpnInstance":
             self.handle_vpn_instance_delete(key, shim_data)
-        elif object_type == "VpnPort":
+        elif object_type == "VPNPort":
             self.handle_vpn_port_delete(key, shim_data)
         elif object_type == "VpnAfConfig":
             self.handle_vpnafconfig_delete(key, shim_data)
