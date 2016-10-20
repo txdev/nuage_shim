@@ -58,6 +58,7 @@ class NuageNetL3VPN(HandlerBase):
         :param model: Model object
         :returns: dict of vif parameters (vif_type, vif_details)
         """
+        LOG.info("bind_port: %s" % uuid)
         port = model.ports.get(uuid, None)
         if not port:
             LOG.error("Cannot find port")
@@ -83,7 +84,6 @@ class NuageNetL3VPN(HandlerBase):
             tmp_list = afconfig_string.split(',')
             for afconfig_name in tmp_list:
                 afconfig_name_list.append(afconfig_name.strip())
-        LOG.info("bind_port: %s" % uuid)
         LOG.info("port: %s" %  port)
         LOG.info("service: %s" %  vpn_instance)
         for afconfig_name in afconfig_name_list:
@@ -139,25 +139,15 @@ class NuageNetL3VPN(HandlerBase):
         :param model: Model object
         :returns: None
         """
+        LOG.info("unbind_port: %s" % uuid)
         port = model.ports.get(uuid, None)
         if not port:
             LOG.error("Cannot find port")
             return False
-        service_binding = model.vpn_ports.get(uuid, None)
-        if not service_binding:
-            LOG.error("Cannot locate bound service")
-            return False
-        vpn_instance = model.vpn_instances.get(service_binding["vpn_instance"], None)
-        if not vpn_instance:
-            LOG.error("VPN instance not available!")
-            return False
-        LOG.info("unbind_port: %s" % uuid)
         LOG.info("port: %s" %  port)
-        LOG.info("service: %s" %  vpn_instance)
         LOG.info(changes)
         config = {
             'api_url': self.api_url,
-            'domain_name': vpn_instance.get('vpn_instance_name'),
             'enterprise': self.enterprise,
             'enterprise_name': self.enterprise_name,
             'username': self.username,
@@ -222,16 +212,66 @@ class NuageNetL3VPN(HandlerBase):
         """
         LOG.info("modify_service_binding: %s" % uuid)
         LOG.info(prev_binding)
-        pass
+        retval = self.unbind_port(uuid, model, {})
+        if (not retval):
+            LOG.error("unbind failed")
+        retval = self.bind_port(uuid, model, {})
+        if (not retval):
+            LOG.error("bind to new service failed")
 
     def delete_service_binding(self, model, prev_binding):
         """ Called when a service is disassociated with a bound port.
 
         :param model: Model Object
         :param prev_binding: dictionary of previous binding
-        :returns: None
+        :returns: True if success, False otherwise
         """
-        pass
+        LOG.info("delete_service_binding:")
+        LOG.info(prev_binding)
+        uuid = prev_binding.get("id")
+        if uuid:
+            port = model.ports.get(uuid, None)
+            if not port:
+                LOG.error("Cannot find port")
+                return False
+            LOG.info("port: %s" % port)
+            if not self.unbind_port(uuid, model, {}):
+                LOG.error("unbind failed")
+                return False
+            prefix = port.get('subnet_prefix', '32')
+            print('prefix = %s' % prefix)
+            rt = "1:1"
+            rd = rt
+            net_address = str(compute_network_addr(port.get('ipaddress', ''),
+                                                   prefix))
+            subnet_name = 'Subnet' + net_address.replace('.', '_')
+            config = {
+                'api_url': self.api_url,
+                'domain_name': "NullDomain",
+                'enterprise': self.enterprise,
+                'enterprise_name': self.enterprise_name,
+                'netmask': compute_netmask(prefix),
+                'network_address': net_address,
+                'route_distinguisher': rd,
+                'route_target': rt,
+                'subnet_name': subnet_name,
+                'username': self.username,
+                'password': self.password,
+                'vm_ip': port.get('ipaddress', ''),
+                'vm_mac': port.get('mac_address', ''),
+                'vm_name': port.get('device_id', ''),  ## uuid of the VM
+                'vm_uuid': port.get('device_id', ''),
+                'vport_name': port.get('id', ''),
+                'zone_name': 'Zone0',
+                'tunnel_type': 'GRE',
+                'domain_template_name': 'GluonDomainTemplate'
+            }
+            sa = NUSplitActivation(config)
+            return sa.activate()
+        else:
+            LOG.error("Bad UUID in prev_binding %s" % uuid)
+            return False
+
 
     def modify_subport_parent(self, uuid, model, prev_parent, prev_parent_type):
         """ Called when a subport's parent relationship changes.
