@@ -82,7 +82,7 @@ class NUSplitActivation:
         except Exception as e:
             LOG.critical("Error on vm and vport deletion %s" % str(e));
 
-        return
+        return True
 
     def activate(self):
         """activate a VM
@@ -168,11 +168,9 @@ class NUSplitActivation:
                 }])
 
                 self.session.user.create_child(vm)
-
-            return True
-
         except Exception, e:
             LOG.error("activating vm failed with exception %s" % str(e))
+        return True
 
     def activate_by_name(self):
         """activate vm. Uses names to identify domain, subnet, and vm

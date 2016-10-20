@@ -92,7 +92,7 @@ class NuageNetL3VPN(HandlerBase):
             if (afconfig):
                 afconfig_list.append(afconfig)
                 LOG.info("  afconfig(%s): %s" % (afconfig_name, afconfig))
-        LOG.info(changes)
+        LOG.info("changes = %s" % changes)
         prefix = port.get('subnet_prefix', '32')
         print('prefix = %s' % prefix)
         if len(afconfig_list) > 0:
@@ -146,7 +146,7 @@ class NuageNetL3VPN(HandlerBase):
             LOG.error("Cannot find port")
             return False
         LOG.info("port: %s" %  port)
-        LOG.info(changes)
+        LOG.info("changes = %s" % changes)
         config = {
             'api_url': self.api_url,
             'enterprise': self.enterprise,
@@ -168,7 +168,7 @@ class NuageNetL3VPN(HandlerBase):
         :returns: None
         """
         LOG.info("modify_port: %s" % uuid)
-        LOG.info(changes)
+        LOG.info("changes = %s" % changes)
         pass
 
     def delete_port(self, uuid, model):
@@ -190,7 +190,7 @@ class NuageNetL3VPN(HandlerBase):
         :returns: None
         """
         LOG.info("modify_service: %s" % uuid)
-        LOG.info(changes)
+        LOG.info("changes = %s" % changes)
         pass
 
     def delete_service(self, uuid, model, changes):
@@ -219,12 +219,10 @@ class NuageNetL3VPN(HandlerBase):
         changes.prev["device_id"] = port.device_id
         LOG.info("modify_service_binding: %s" % uuid)
         LOG.info(prev_binding)
-        retval = self.unbind_port(uuid, model, changes)
-        if (not retval):
+        if not self.unbind_port(uuid, model, changes):
             LOG.error("unbind failed")
         changes = Model.ChangeData()
-        retval = self.bind_port(uuid, model, changes)
-        if (not retval):
+        if not self.bind_port(uuid, model, changes):
             LOG.error("bind to new service failed")
 
     def delete_service_binding(self, model, prev_binding):
@@ -247,7 +245,6 @@ class NuageNetL3VPN(HandlerBase):
             changes.prev["device_id"] = port.device_id
             if not self.unbind_port(uuid, model, changes):
                 LOG.error("unbind failed")
-                return False
             prefix = port.get('subnet_prefix', '32')
             print('prefix = %s' % prefix)
             rt = "1:1"

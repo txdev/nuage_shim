@@ -100,8 +100,7 @@ class ApiNetL3VPN(ApiModelBase):
     def handle_port_change(self, key, attributes, shim_data):
         if key in self.model.ports:
             prev_port = self.model.ports[key]
-            self.model.ports[key].update_attrs(attributes)
-            changes = Model.ChangeData()
+            changes = self.model.ports[key].update_attrs(attributes)
             if self.bind_attributes_changed(changes.new):
                 if self.model.ports[key]["__state"] == "Bound":
                     if self.is_bind_request(changes.new):  # already bound?
