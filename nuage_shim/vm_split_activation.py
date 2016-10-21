@@ -112,8 +112,10 @@ class NUSplitActivation:
                 enterprise.create_child(domain)
                 # update domain with the right values
                 domain.tunnel_type = self.tunnel_type
-                domain.route_distinguisher = self.route_distinguisher
-                domain.route_target = self.route_target
+                if hasattr(self,'route_distinguisher'):
+                    domain.route_distinguisher = self.route_distinguisher
+                if hasattr(self,'route_target'):
+                    domain.route_target = self.route_target
                 # domain.back_haul_route_target = '20000:20000'
                 # domain.back_haul_route_distinguisher = '20000:20000'
                 # domain.back_haul_vnid = '25000'

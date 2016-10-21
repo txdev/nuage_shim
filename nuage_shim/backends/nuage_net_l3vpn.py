@@ -52,6 +52,34 @@ class NuageNetL3VPN(HandlerBase):
         self.enterprise = _enterprise
         self.enterprise_name = _enterprise_name
 
+    def bind_to_null_domain(self, port):
+        prefix = port.get('subnet_prefix', '32')
+        print('prefix = %s' % prefix)
+        net_address = str(compute_network_addr(port.get('ipaddress', ''),
+                                               prefix))
+        subnet_name = 'Subnet' + net_address.replace('.', '_')
+        config = {
+            'api_url': self.api_url,
+            'domain_name': "Domain0000",
+            'enterprise': self.enterprise,
+            'enterprise_name': self.enterprise_name,
+            'netmask': compute_netmask(prefix),
+            'network_address': net_address,
+            'subnet_name': subnet_name,
+            'username': self.username,
+            'password': self.password,
+            'vm_ip': port.get('ipaddress', ''),
+            'vm_mac': port.get('mac_address', ''),
+            'vm_name': port.get('device_id', ''),  ## uuid of the VM
+            'vm_uuid': port.get('device_id', ''),
+            'vport_name': port.get('id', ''),
+            'zone_name': 'Zone0',
+            'tunnel_type': 'GRE',
+            'domain_template_name': 'GluonDomainTemplate'
+        }
+        sa = NUSplitActivation(config)
+        return sa.activate()
+
     def bind_port(self, uuid, model, changes):
         """ Called to bind port to VM.
 
@@ -66,8 +94,13 @@ class NuageNetL3VPN(HandlerBase):
             return dict()
         service_binding = model.vpn_ports.get(uuid, None)
         if not service_binding:
-            LOG.error("Cannot bind port, not bound to a service")
-            return dict()
+            LOG.error("Port not bound to a service, binding to null domain")
+            if self.bind_to_null_domain(port):
+                return {'vif_type': 'ovs',
+                        'vif_details': {'port_filter': False,
+                                        'bridge_name': 'alubr0'}}
+            else:
+                return dict()
         vpn_instance = model.vpn_instances.get(service_binding["vpn_instance"], None)
         if not vpn_instance:
             LOG.error("VPN instance not available!")
@@ -245,36 +278,7 @@ class NuageNetL3VPN(HandlerBase):
             changes.prev["device_id"] = port.device_id
             if not self.unbind_port(uuid, model, changes):
                 LOG.error("unbind failed")
-            prefix = port.get('subnet_prefix', '32')
-            print('prefix = %s' % prefix)
-            rt = "65534:15655"
-            rd = "65534:21953"
-            net_address = str(compute_network_addr(port.get('ipaddress', ''),
-                                                   prefix))
-            subnet_name = 'Subnet' + net_address.replace('.', '_')
-            config = {
-                'api_url': self.api_url,
-                'domain_name': "Domain0000",
-                'enterprise': self.enterprise,
-                'enterprise_name': self.enterprise_name,
-                'netmask': compute_netmask(prefix),
-                'network_address': net_address,
-                'route_distinguisher': rd,
-                'route_target': rt,
-                'subnet_name': subnet_name,
-                'username': self.username,
-                'password': self.password,
-                'vm_ip': port.get('ipaddress', ''),
-                'vm_mac': port.get('mac_address', ''),
-                'vm_name': port.get('device_id', ''),  ## uuid of the VM
-                'vm_uuid': port.get('device_id', ''),
-                'vport_name': port.get('id', ''),
-                'zone_name': 'Zone0',
-                'tunnel_type': 'GRE',
-                'domain_template_name': 'GluonDomainTemplate'
-            }
-            sa = NUSplitActivation(config)
-            return sa.activate()
+            self.bind_to_null_domain(port)
         else:
             LOG.error("Bad UUID in prev_binding %s" % uuid)
             return False
