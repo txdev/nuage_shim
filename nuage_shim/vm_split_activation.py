@@ -114,11 +114,10 @@ class NUSplitActivation:
                 domain.tunnel_type = self.tunnel_type
                 domain.route_distinguisher = self.route_distinguisher
                 domain.route_target = self.route_target
-                domain.back_haul_route_target = '20000:20000'
-                domain.back_haul_route_distinguisher = '20000:20000'
-                domain.back_haul_vnid = '25000'
+                # domain.back_haul_route_target = '20000:20000'
+                # domain.back_haul_route_distinguisher = '20000:20000'
+                # domain.back_haul_vnid = '25000'
                 domain.save()
-                time.sleep(1)
 
             # get zone
             zone = domain.zones.get_first(filter='name == "%s"' % self.zone_name)
@@ -127,8 +126,6 @@ class NUSplitActivation:
                 LOG.info("Zone %s not found, creating zone" % self.zone_name)
                 zone = vsdk.NUZone(name=self.zone_name)
                 domain.create_child(zone)
-                time.sleep(1)
-
             zone.subnets.fetch()
 
             subnet = next((subnet for subnet in zone.subnets if
@@ -166,6 +163,7 @@ class NUSplitActivation:
                 self.session.user.create_child(vm)
         except Exception, e:
             LOG.error("activating vm failed with exception %s" % str(e))
+            return False
         return True
 
     def activate_by_name(self):
