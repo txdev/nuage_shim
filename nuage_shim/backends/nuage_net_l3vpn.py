@@ -247,14 +247,14 @@ class NuageNetL3VPN(HandlerBase):
                 LOG.error("unbind failed")
             prefix = port.get('subnet_prefix', '32')
             print('prefix = %s' % prefix)
-            rt = "65535:65535"
-            rd = rt
+            rt = "65534:15655"
+            rd = "65534:21953"
             net_address = str(compute_network_addr(port.get('ipaddress', ''),
                                                    prefix))
             subnet_name = 'Subnet' + net_address.replace('.', '_')
             config = {
                 'api_url': self.api_url,
-                'domain_name': "NullDomain",
+                'domain_name': "Domain0000",
                 'enterprise': self.enterprise,
                 'enterprise_name': self.enterprise_name,
                 'netmask': compute_netmask(prefix),
