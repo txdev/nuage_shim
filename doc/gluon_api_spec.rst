@@ -2,15 +2,15 @@ Gluon API Specification
 =======================
 
 Gluon supports the processing of a specification document to define an
-object-based API.  The Gluon API Specification uses YAML syntax to define the
-structure and relationships of the objects that are manipulated by the API.
-This specification also include metadata definitions that can be used for the
-automatic generation of human readable API documentation.
+object-oriented API.  The Gluon API specification uses YAML syntax to define
+the structure and relationships of the objects that are manipulated by the
+API.  This specification also includes metadata definitions that can be used
+for the automatic generation of human readable API documentation.
 
 The specification allows for the definition of two types of objects: base
 objects and API objects.  A base object is an object specification that does
-not have an API definition field.  An object with an API definition field is an
-API object. A Base object is used to define a set of attributes that can be
+not have an API definition field.  An object with an API definition field is
+an API object. A Base object is used to define a set of attributes that can be
 included in other object definitions.  Base objects can extend other base
 objects but not API objects.  An API object can only extend base objects.  No
 code is created for base objects.  The Gluon framework will generate code for
@@ -20,61 +20,62 @@ For each API object, the Gluon framework will generate code for database
 storage and code to support a REST API to manipulate the object.  The API
 endpoints created will support the basic CRUD operations on the object. Each
 API object will have a corresponding database table.  Each API object is
-required to have primary key field.  The primary key field is used as the
+required to have a primary key field.  The primary key field is used as the
 identifier in the generated API endpoints.  For example, if we define an API
 object for a Port with a path name of *ports* the following API URL endpoints
-will be generated where <id> is the primary key.
+will be generated where <port_id> is the primary key.
 
-.. csv-table:: 
+.. csv-table::
    :header: "Operation", "URL", "Description"
    :widths: 5, 15, 15
 
    POST, /proton/<api_name>/ports,   Create Port object
-   PUT, /proton/<api_name>/ports/<id>,   Modify Port object
+   PUT, /proton/<api_name>/ports/<port_id>,   Modify Port object
    GET, /proton/<api_name>/ports,   Get all Port objects
-   GET, /proton/<api_name>/ports/<id>,   Get one Port object
-   DELETE, /proton/<api_name>/ports/<id>,   Delete a Port object
+   GET, /proton/<api_name>/ports/<port_id>,   Get one Port object
+   DELETE, /proton/<api_name>/ports/<port_id>,   Delete a Port object
 
-The content type for all of the operations is *application/json*.  
+The content type for all of the operations is *application/json*.
 
 The API objects can have pointer relationships and parent/child relationships
 to other API objects.  A pointer relationship can be created by defining a
-field that uses the object name of another object as it type.  When this type
+field that uses the object name of another object as its type.  When this type
 of relationship is specified, the primary key of the referenced object becomes
 a foreign key in the object's database table.  A parent/child relationship can
-be created at the API level by specifying the parent object name in an object's
-API definition.  When a parent/child relationship is specified, a pointer
-relationship from the child object to the parent object is automatically
-created using the primary key of the parent.  In addition, different API
-endpoints are generated to manipulate the child object.  For example, assume we
-define an API objects for Port and an Interface where the Interface is a child
-of the Port.  If the path names are *ports* and *interfaces*, the following API
-URL endpoints for the Interface object would be generated.
+be created at the API level by specifying the parent object name in an
+object's API definition.  When a parent/child relationship is specified, a
+pointer relationship from the child object to the parent object is
+automatically created using the primary key of the parent.  In addition,
+different API endpoints are generated to manipulate the child object.  For
+example, assume we define an API object for Port and another API object for
+Interface where the Interface is a child of the Port.  If the path names are
+*ports* and *interfaces*, the following API URL endpoints for the Interface
+object would be generated.
 
-.. list-table:: 
+.. list-table::
    :widths: 5 15 16
    :header-rows: 1
 
    * - Operation
      - URL
      - Description
-   * - POST 
+   * - POST
      - /proton/<api_name>/ports/<port_id>/interfaces
      -  Create Interface object
-   * - PUT 
-     - /proton/<api_name>/ports/<port_id>/interfaces/<id>
+   * - PUT
+     - /proton/<api_name>/ports/<port_id>/interfaces/<interface_id>
      -  Modify Interface object
-   * - GET 
+   * - GET
      - /proton/<api_name>/ports/<port_id>/interfaces
      -  Get all Interface objects for Port
-   * - GET 
-     - /proton/<api_name>/ports/<port_id>/interfaces/<id>
+   * - GET
+     - /proton/<api_name>/ports/<port_id>/interfaces/<interface_id>
      -  Get one Interface object
-   * - DELETE 
-     - /proton/<api_name>/ports/<port_id>/interfaces/<id>
+   * - DELETE
+     - /proton/<api_name>/ports/<port_id>/interfaces/<interface_id>
      -  Delete an Interface object
 
-This document describes the specificaiton for defining an API.  Further
+This document describes the specification for defining an API.  Further
 guidance on how to design an API using the Service Binding Model can be found
 `here <https://github.com/openstack/gluon/blob/master/doc/source/devref/service_binding_model.rst>`_.
 
@@ -87,69 +88,69 @@ Patterned fields can have multiple occurrences as long as each has a unique
 name.  Each field will have a value that is defined as a primitive type or as
 an JSON object.  The JSON objects are very similar to the Schema Object found
 in Swagger.  However, some extensions are added and only a small subset of the
-properties are supported.  
+properties are supported.
 
 Primitive  Data Types
 ---------------------
 
-.. list-table:: 
+.. list-table::
    :widths: 15 20 30
    :header-rows: 1
 
    * - Type
      - Description
      - Associated Properties
-   * - integer 
-     - Integer number 
+   * - integer
+     - Integer number
      - - format: int32, int64  (default: int32)
        - min: *integer*
        - max: *integer*
-   * - number 
-     - Floating point number 
+   * - number
+     - Floating point number
      - n/a
-   * - string 
-     - Text String 
+   * - string
+     - Text String
      - - length: *integer* (default: 255)
        - format: date-time, json, ipv4, ipv6, mac, url, email
-   * - boolean 
+   * - boolean
      - Boolean value (true/false)
      - n/a
-   * - uuid 
+   * - uuid
      - Text string in UUID format
      - n/a
-   * - enum 
+   * - enum
      - Text string with set of values
      - - values: [*string*]
 
 File Structure
 --------------
 
-The API is defined by a single file.  The Root Object is defined by the 
-ProtonDef object.  
+The API is defined by a single file.  The Root Object is defined by the
+ProtonDef object.
 
 
 ProtonDef
 +++++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Fixed Field", "Type", "Required", "Description"
    :widths: 5, 5, 3, 20
 
-   version, string,  true, Proton File Version
+   file_version, string,  true, Proton File Version
    imports, string, false, File path to common base object definitions
-   info, InfoDef_,  true, Metadata for this API specification
+   info, InfoDef_,  true, Metadata for this API specification that is useful in the generation of human readable API documentation.
    objects, ObjectsDef_,  true, Object definitions for this API
 
-The ProtonDef is the root object for the API specification. The *version* is
-used to identify the format used to create this file. The *info* field contains
-the metadata about the API.  The *objects* field contains the base and API
-object definitions for the API.  See the complete Example_ at the end of this
-page for an example of the ProtonDef syntax.
+The ProtonDef is the root object for the API specification. The *file_version*
+is used to identify the format used to create this file. The *info* field
+contains the metadata about the API.  The *objects* field contains the base
+and API object definitions for the API.  See the complete Example_ at the end
+of this page for an example of the ProtonDef syntax.
 
 .. _InfoDef:
 
 InfoDef
 +++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Fixed Field", "Type", "Required", "Description"
    :widths: 5, 5, 3, 20
 
@@ -177,7 +178,7 @@ The InfoDef is where metadata about the API can be specified.  At a minimum the
 
 AuthorDef
 +++++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Fixed Field", "Type", "Required", "Description"
    :widths: 5, 5, 3, 20
 
@@ -186,8 +187,8 @@ AuthorDef
    email, string,  false, Email address of author
 
 
-The AuthorDef allows authorship information about the API to specified. This
-information is optional.
+The AuthorDef allows authorship information about the API to be specified.
+This information is optional.
 
 **Example**
 
@@ -201,19 +202,19 @@ information is optional.
 
 ObjectsDef
 ++++++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Pattern Field", "Type", "Required", "Description"
    :widths: 6, 5, 3, 20
 
    {name}, ObjectDef_,  true, Field/Value Object definitions
 
 The ObjectsDef allows one or more objects to be specified for the API.  The
-*{name}* should be a camel case name with no spaces. 
+*{name}* should be a camel case name with no spaces.
 
 **Example**
 
 ::
-      
+
       VpnService:
         api:
           name: vpn
@@ -237,19 +238,21 @@ The ObjectsDef allows one or more objects to be specified for the API.  The
 
 ObjectDef
 +++++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Fixed Field", "Type", "Required", "Description"
    :widths: 5, 5, 3, 20
 
    api, ApiDef_,  false, API path information for object
-   extends, string,  false, Name of an object definition to extend
+   extends, string,  false, Name of a base object definition to extend
    attributes, AttributesDef_,  true, Attribute definitions of object
-   policies, PolicyDef_, false, Access rules for this object
+   policies, PolicyDef_, false, Access rules for this API object
 
-The ObjectDef defines either a base object or an API object.  The *extends*
-field (if present) must specify the ObjectDef name of another base object.  The
-*policies* field is only allowed for an API object.  If the *policies* field is
-omitted, no access controll is applied to the object.
+The ObjectDef defines either a base object or an API object.  If the *api*
+field is present, it is an API object.  If the *api* field is omitted, it is a
+base object.  The *extends* field (if present) must specify the ObjectDef name
+of another base object.  The *policies* field is only allowed for an API
+object.  If the *policies* field is omitted, no access control is applied to
+the object.
 
 **Example**
 
@@ -258,7 +261,7 @@ omitted, no access controll is applied to the object.
     api:
       name: port
       plural_name: ports
-    extends: BasePort            
+    extends: BasePort
     attributes:
       alarms:
         type: string
@@ -276,22 +279,21 @@ omitted, no access controll is applied to the object.
 
 ApiDef
 ++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Fixed Field", "Type", "Required", "Description"
    :widths: 5, 5, 3, 20
 
-   name, string,  true, Singular path name for object
-   plural_name, string,  false, Plural path name for object
+   name, string,  true, Singular path name for the object
+   plural_name, string,  false, Plural path name for the object
    parent, string,  false, Name of an ObjectDef specification
 
 The ApiDef defines the API path and optionally a parent/child relationship for
-the object.  If this definition is omitted the object will be a base object.
-The *parent* field (if present) must specify the ObjectDef name of another API
-object.  The *name* field is used by the generated CLI code to identify the
-object to be manipulated.  The *plural_name* field is used by the generated API
-code as the path to identify the object to manipulated.  If the *plural_name*
-field is omitted, an 's' character is added to the name for the API path during
-code generation.
+the object.  The *parent* field (if present) must specify the ObjectDef name
+of another API object.  The *name* field is used by the generated CLI code to
+identify the object to be manipulated.  The *plural_name* field is used by the
+generated API code as part of the path to identify the object to be manipulated.
+If the *plural_name* field is omitted, an 's' character is added to the name
+for the API path during code generation.
 
 **Example**
 
@@ -306,11 +308,11 @@ code generation.
 
 PolicyDef
 +++++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Fixed Field", "Type", "Required", "Description"
    :widths: 5, 5, 3, 20
 
-   create, string,  false, Rule specifier string 
+   create, string,  false, Rule specifier string
    delete, string,  false, Rule specifier string
    get, string,  false, Rule specifier string
    get_one, string,  false, Rule specifier string
@@ -318,7 +320,7 @@ PolicyDef
 
 The PolicyDef defines the Role-Based Access Control (RBAC) for the object.  The
 access to the object can be controlled for each generated action.  The syntax
-of the rule specifier string is defined in the Openstack Policy 
+of the rule specifier string is defined in the Openstack Policy
 `document <http://docs.openstack.org/newton/config-reference/policy-json-file.html>`_.
 
 **Example**
@@ -335,14 +337,14 @@ of the rule specifier string is defined in the Openstack Policy
 
 AttributesDef
 +++++++++++++
-.. csv-table:: 
+.. csv-table::
    :header: "Pattern Field", "Type", "Required", "Description"
    :widths: 6, 5, 3, 20
 
    {name}, AttributeSchemaDef_,  true, Field/Value Attribute definitions
 
 The AttributesDef allows one or more attributes to be specified for the object.
-The *{name}* should be a lowercase with no spaces. 
+The *{name}* should be a lowercase with no spaces.
 
 .. _AttributeSchemaDef:
 
@@ -360,7 +362,7 @@ The *{name}* should be a lowercase with no spaces.
 AttributeSchemaDef
 ++++++++++++++++++
 
-.. csv-table:: 
+.. csv-table::
    :header: "Fixed Field", "Type", "Required", "Description"
    :widths: 5, 5, 3, 20
 
@@ -370,26 +372,26 @@ AttributeSchemaDef
    required, boolean, false, Required flag for object creation (default: false)
    length, integer, false, Length if type is string (default: 255)
    values, [string], false, Array of strings (required if type is enum)
-   format, string, false, Format if type is integer or string 
+   format, string, false, Format if type is integer or string
    min, integer, false, Min value if type is integer
    max, integer, false, Max value if type is integer
 
 Each attribute is defined by an AttributeSchemaDef.  The *type* field is
 mandatory and can specify a primitive data type or it can be the name of an
-ObjectDef.  The ObjectDef must be for an API object.  One attribute for an
-object must have the *primary* field specified.  The *required* field is used
-to specify if the attribute must be present when creating an object.  If the
-*type* is enum, the *values* field must be present and define an array of valid
-strings for the enumeration.
+ObjectDef.  The ObjectDef name must be for an API object.  One attribute for
+an object must have the *primary* field specified.  The *required* field is
+used to specify if the attribute must be present when creating an object.  If
+the *type* is enum, the *values* field must be present and define an array of
+valid strings for the enumeration.
 
 If the *type* is integer:
 
 * The *format* field can specify if the integer is 32 or 64 bit. Default is int32
-* The *min* field can specify the valid minimum value 
+* The *min* field can specify the valid minimum value
 * The *max* field can specify the valid maximum value
 
 If the *type* is string:
- 
+
 * The *format* field can specify the formatting that will be validated for the string.  The string formatting validations supported are:
 
     * date-time - Validated according to Date_Time_
@@ -416,8 +418,8 @@ Complete Example Specification
 ++++++++++++++++++++++++++++++
 
 This section shows the L3VPN API defined using this specification.  The base
-objects that would be defined in base/base.yaml are in the Base Objects section
-and the API is defined in the API Specification section.
+objects that would be defined in base/base.yaml are in the Base Objects
+section and the API is defined in the API Specification section.
 
 Base Objects
 ************
@@ -554,13 +556,13 @@ Base Objects
             description: "Pointer to Service instance"
 
 API Specification
-*****************  
-  
+*****************
+
 ::
 
     version: 1.0
     imports: base/base.yaml
-    info: 
+    info:
       name: net-l3vpn
       version: 1.0
       description "L3VPN API Specification"
@@ -573,7 +575,7 @@ API Specification
         api:
           name: port
           plural_name: ports
-        extends: BasePort            
+        extends: BasePort
         attributes:
           alarms:
             type: string
@@ -616,7 +618,7 @@ API Specification
             description: "Pointer to VpnService instance"
           ipaddress:
             type: string
-            length: 23 
+            length: 23
             description: "IP Address of port"
             format: ipv4
           subnet_prefix:
@@ -624,10 +626,10 @@ API Specification
             description: "Subnet mask"
             format: int32
             min: 1
-            max: 31 
+            max: 31
           gateway:
             type: string
-            length: 32 
+            length: 32
             description: "Default gateway"
             format: ipv4
       VpnAfConfig:
@@ -657,4 +659,4 @@ API Specification
             type: string
             length: 32
             description: "Route target export policy"
-    
+
