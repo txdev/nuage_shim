@@ -2,7 +2,7 @@ Gluon API Specification
 =======================
 
 Gluon supports the processing of a specification document to define an
-object-oriented API.  The Gluon API specification uses YAML syntax to define
+object-oriented API.  The gluon API specification uses YAML syntax to define
 the structure and relationships of the objects that are manipulated by the
 API.  This specification also includes metadata definitions that can be used
 for the automatic generation of human readable API documentation.
@@ -10,13 +10,13 @@ for the automatic generation of human readable API documentation.
 The specification allows for the definition of two types of objects: base
 objects and API objects.  A base object is an object specification that does
 not have an API definition field.  An object with an API definition field is
-an API object. A Base object is used to define a set of attributes that can be
+an API object. A base object is used to define a set of attributes that can be
 included in other object definitions.  Base objects can extend other base
 objects but not API objects.  An API object can only extend base objects.  No
-code is created for base objects.  The Gluon framework will generate code for
+code is created for base objects.  The gluon framework will generate code for
 API objects.
 
-For each API object, the Gluon framework will generate code for database
+For each API object, the gluon framework will generate code for database
 storage and code to support a REST API to manipulate the object.  The API
 endpoints created will support the basic CRUD operations on the object. Each
 API object will have a corresponding database table.  Each API object is
@@ -43,14 +43,15 @@ field that uses the object name of another object as its type.  When this type
 of relationship is specified, the primary key of the referenced object becomes
 a foreign key in the object's database table.  A parent/child relationship can
 be created at the API level by specifying the parent object name in an
-object's API definition.  When a parent/child relationship is specified, a
-pointer relationship from the child object to the parent object is
-automatically created using the primary key of the parent.  In addition,
-different API endpoints are generated to manipulate the child object.  For
-example, assume we define an API object for Port and another API object for
-Interface where the Interface is a child of the Port.  If the path names are
-*ports* and *interfaces*, the following API URL endpoints for the Interface
-object would be generated.
+object's API definition (see ApiDef_).  When a parent/child relationship is
+specified, a pointer relationship from the child object to the parent object
+is automatically created using the primary key of the parent.
+
+In addition, different API endpoints are generated to manipulate the child
+object.  For example, assume we define an API object for Port and another API
+object for Interface where the Interface is a child of the Port.  If the path
+names are *ports* and *interfaces*, the following API URL endpoints for the
+Interface object would be generated.
 
 .. list-table::
    :widths: 5 15 16
@@ -119,15 +120,15 @@ Primitive  Data Types
      - Text string in UUID format
      - n/a
    * - enum
-     - Text string with set of values
+     - Text string from a list of values
      - - values: [*string*]
 
 File Structure
 --------------
 
 The API is defined by a single file.  The Root Object is defined by the
-ProtonDef object.
-
+ProtonDef object. See the complete Example_ at the end of this page for an
+example of the ProtonDef syntax.
 
 ProtonDef
 +++++++++
@@ -140,13 +141,37 @@ ProtonDef
    info, InfoDef_,  true, Metadata for this API specification that is useful in the generation of human readable API documentation.
    objects, ObjectsDef_,  true, Object definitions for this API
 
+**Example**
+
+::
+
+  file_version: 1.0
+  imports: base/base.yaml
+  info:
+    name: net-l3vpn
+    version: 1.0
+    description "L3VPN API Specification"
+    author:
+      name: "Gluon Team"
+      url: https://wiki.openstack.org/wiki/Gluon
+      email: bh526r@att.com
+  objects:
+    Port:
+      api:
+        name: port
+        plural_name: ports
+      extends: BasePort
+      attributes:
+        alarms:
+          type: string
+          length: 255
+          description: "Alarm summary for port"
+    ...
+
 The ProtonDef is the root object for the API specification. The *file_version*
 is used to identify the format used to create this file. The *info* field
 contains the metadata about the API.  The *objects* field contains the base
-and API object definitions for the API.  See the complete Example_ at the end
-of this page for an example of the ProtonDef syntax.
-
-.. _InfoDef:
+and API object definitions for the API.
 
 InfoDef
 +++++++
@@ -174,8 +199,6 @@ The InfoDef is where metadata about the API can be specified.  At a minimum the
     url: https://wiki.openstack.org/wiki/Gluon
     email: bh526r@att.com
 
-.. _AuthorDef:
-
 AuthorDef
 +++++++++
 .. csv-table::
@@ -198,18 +221,16 @@ This information is optional.
   url: https://wiki.openstack.org/wiki/Gluon
   email: bh526r@att.com
 
-.. _ObjectsDef:
-
 ObjectsDef
 ++++++++++
 .. csv-table::
    :header: "Pattern Field", "Type", "Required", "Description"
-   :widths: 6, 5, 3, 20
+   :widths: 10, 5, 3, 20
 
-   {name}, ObjectDef_,  true, Field/Value Object definitions
+   [_a-zA-Z][_a-zA-Z0-9]*, ObjectDef_,  true, Field/Value Object definitions
 
 The ObjectsDef allows one or more objects to be specified for the API.  The
-*{name}* should be a camel case name with no spaces.
+field name should follow the lexical definitions for a Python identifier.
 
 **Example**
 
@@ -233,8 +254,6 @@ The ObjectsDef allows one or more objects to be specified for the API.  The
             type: string
             length: 32
             description: "Route distinguisher for this VPN"
-
-.. _ObjectDef:
 
 ObjectDef
 +++++++++
@@ -275,8 +294,6 @@ the object.
       update: "rule:admin_or_network_owner"
 
 
-.. _ApiDef:
-
 ApiDef
 ++++++
 .. csv-table::
@@ -302,9 +319,6 @@ for the API path during code generation.
   name: interface
   plural_name: interfaces
   parent: Port
-
-
-.. _PolicyDef:
 
 PolicyDef
 +++++++++
@@ -333,20 +347,17 @@ of the rule specifier string is defined in the Openstack Policy
   get_one: "rule:admin_or_owner"
   update: "rule:admin_or_network_owner"
 
-.. _AttributesDef:
-
 AttributesDef
 +++++++++++++
 .. csv-table::
    :header: "Pattern Field", "Type", "Required", "Description"
-   :widths: 6, 5, 3, 20
+   :widths: 10, 5, 3, 20
 
-   {name}, AttributeSchemaDef_,  true, Field/Value Attribute definitions
+   [_a-zA-Z][_a-zA-Z0-9]*, AttributeSchemaDef_,  true, Field/Value Attribute definitions
 
-The AttributesDef allows one or more attributes to be specified for the object.
-The *{name}* should be a lowercase with no spaces.
-
-.. _AttributeSchemaDef:
+The AttributesDef allows one or more attributes to be specified for the
+object.  The field name should follow the lexical definitions for a Python
+identifier.
 
 **Example**
 
@@ -403,6 +414,37 @@ If the *type* is string:
     * email - Validated according to EMAIL_
 * The *length* field can specify the size of the string. Default is 255
 
+**Example**
+
+The following example shows the AttributeSchemaDef definitions for ipaddress,
+subnet_prefix, status, and profile.
+
+::
+
+  ipaddress:
+    type: string
+    length: 23
+    description: "IP Address of port"
+    format: ipv4
+  subnet_prefix:
+    type: integer
+    description: "Subnet mask"
+    format: int32
+    min: 1
+    max: 31
+  status:
+    type: enum
+    required: true
+    description: "Operational status of Port"
+    values:
+      - 'ACTIVE'
+      - 'DOWN'
+  profile:
+    type: string
+    length: 128
+    description: "JSON string for binding profile dictionary"
+    format: json
+
 References
 ++++++++++
 
@@ -426,7 +468,7 @@ Base Objects
 
 ::
 
-    version: 1.0
+    file_version: 1.0
     objects:
       BasePort:
         attributes:
@@ -517,7 +559,7 @@ Base Objects
           segmentation_type:
             type: enum
             required: true
-            description: "Type of segmention for this interface"
+            description: "Type of segmentation for this interface"
             values:
               - 'none'
               - 'vlan'
@@ -543,7 +585,7 @@ Base Objects
             type: string
             length: 256
             description: "Description of Service"
-      BaseServcieBinding:
+      BaseServiceBinding:
         attributes:
           interface_id:
             type: uuid
@@ -560,7 +602,7 @@ API Specification
 
 ::
 
-    version: 1.0
+    file_version: 1.0
     imports: base/base.yaml
     info:
       name: net-l3vpn
